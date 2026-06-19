@@ -25,7 +25,7 @@ public class EmailServiceImpl implements EmailService{
             MailTransport mailTransport,
             TemplateEngine templateEngine,
             DeliveryDetailRepository deliveryDetailRepository,
-            @Value("${notification.email.from-address:${spring.mail.username}}") String adminEmail,
+            @Value("${perfume.budget.admin.email}") String adminEmail,
             @Value("${frontend.change-password-url}") String changePasswordUrl
     ) {
         this.mailTransport = mailTransport;
