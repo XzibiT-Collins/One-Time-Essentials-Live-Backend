@@ -115,7 +115,8 @@ class InventoryManagementServiceImplLedgerHookTest {
         inventoryManagementService.receiveStock(new InventoryReceiptRequest(
                 1L, 5, new BigDecimal("10.00"), new BigDecimal("20.00"), null, "PO-1", "shipment"));
 
-        verify(locationLedgerSync).increaseAtDefaultReceiving(product, 5, StockTransferType.RECEIPT, "shipment");
+        verify(locationLedgerSync).increaseAtDefaultReceiving(product, 5, StockTransferType.RECEIPT,
+                InventoryReferenceType.RECEIPT, "PO-1", "shipment");
     }
 
     @Test
@@ -124,7 +125,8 @@ class InventoryManagementServiceImplLedgerHookTest {
                 1L, InventoryAdjustmentDirection.INCREASE, 3, "stocktake",
                 new BigDecimal("10.00"), new BigDecimal("20.00"), "ADJ-1", "found extra"));
 
-        verify(locationLedgerSync).increaseAtDefaultReceiving(product, 3, StockTransferType.ADJUSTMENT, "found extra");
+        verify(locationLedgerSync).increaseAtDefaultReceiving(product, 3, StockTransferType.ADJUSTMENT,
+                InventoryReferenceType.ADJUSTMENT, "ADJ-1", "found extra");
     }
 
     @Test
@@ -135,7 +137,8 @@ class InventoryManagementServiceImplLedgerHookTest {
         inventoryManagementService.adjustInventory(new InventoryAdjustmentRequest(
                 1L, InventoryAdjustmentDirection.DECREASE, 2, "damage", null, null, "ADJ-2", "broken bottles"));
 
-        verify(locationLedgerSync).deductAtDefaultReceiving(product, 2, "broken bottles");
+        verify(locationLedgerSync).deductAtDefaultReceiving(product, 2,
+                InventoryReferenceType.ADJUSTMENT, "ADJ-2", "broken bottles");
     }
 
     @Test
@@ -146,7 +149,7 @@ class InventoryManagementServiceImplLedgerHookTest {
 
         inventoryManagementService.consumeWalkInInventory("WIN-1", List.of(item));
 
-        verify(locationLedgerSync).deductForWalkInSale(product, 2, "Consumed for walk-in order WIN-1");
+        verify(locationLedgerSync).deductForWalkInSale(product, 2, "WIN-1", "Consumed for walk-in order WIN-1");
         assertEquals(new BigDecimal("10.00"), item.getCostPrice());
     }
 
@@ -213,7 +216,7 @@ class InventoryManagementServiceImplLedgerHookTest {
 
         inventoryManagementService.finalizeReservedOrder(order);
 
-        verify(locationLedgerSync).deductForEcommerceSale(product, 5, "Fulfilled order ORD-9");
+        verify(locationLedgerSync).deductForEcommerceSale(product, 5, "ORD-9", "Fulfilled order ORD-9");
         assertEquals(InventoryAllocationStatus.CONSUMED, first.getStatus());
         assertEquals(InventoryAllocationStatus.CONSUMED, second.getStatus());
     }
