@@ -10,6 +10,7 @@ public record InventoryMovementResponse(
         String unitSellingPrice,
         String referenceType,
         String referenceId,
+        String recordedBy,
         String note,
         LocalDateTime createdAt
 ) {

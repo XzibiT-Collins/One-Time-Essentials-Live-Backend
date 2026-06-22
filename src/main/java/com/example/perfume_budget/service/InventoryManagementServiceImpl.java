@@ -570,6 +570,7 @@ public class InventoryManagementServiceImpl implements InventoryManagementServic
                 new Money(movement.getUnitSellingPrice(), movement.getCurrencyCode()).toString(),
                 movement.getReferenceType().name(),
                 movement.getReferenceId(),
+                movement.getRecordedBy(),
                 movement.getNote(),
                 movement.getCreatedAt()
         );
