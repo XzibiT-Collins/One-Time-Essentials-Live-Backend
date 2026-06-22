@@ -20,7 +20,7 @@ public class StockConversionController {
 
     private final StockConversionService stockConversionService;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','FRONT_DESK')")
     @GetMapping("/reverse/{sourceProductId}/variants")
     public ResponseEntity<CustomApiResponse<List<ProductVariantSummaryResponse>>> getReverseConversionTargetVariants(
             @PathVariable Long sourceProductId) {
@@ -30,7 +30,7 @@ public class StockConversionController {
         ));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','FRONT_DESK')")
     @PostMapping("/forward")
     public ResponseEntity<CustomApiResponse<StockConversionResponse>> convertForward(
             @Valid @RequestBody StockConversionRequest request) {
@@ -42,7 +42,7 @@ public class StockConversionController {
         return ResponseEntity.ok(CustomApiResponse.success("Forward conversion successful", conversion));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','FRONT_DESK')")
     @PostMapping("/reverse")
     public ResponseEntity<CustomApiResponse<StockConversionResponse>> convertReverse(
             @Valid @RequestBody StockConversionRequest request) {

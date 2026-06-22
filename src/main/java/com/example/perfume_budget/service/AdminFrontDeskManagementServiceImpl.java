@@ -152,6 +152,10 @@ public class AdminFrontDeskManagementServiceImpl implements AdminFrontDeskManage
         List<FrontDeskUserPermissionOverride> existingOverrides = overrideRepository.findAllByUser(user);
         if (!existingOverrides.isEmpty()) {
             overrideRepository.deleteAll(existingOverrides);
+            // Force the deletes to hit the DB before the inserts below. Hibernate orders
+            // inserts ahead of deletes within a single flush, so re-saving a permission the
+            // user already has would otherwise violate uk_front_desk_user_permission_override.
+            overrideRepository.flush();
         }
 
         List<FrontDeskUserPermissionOverride> newOverrides = allowedPermissions.stream()

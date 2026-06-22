@@ -2,6 +2,7 @@ package com.example.perfume_budget.service;
 
 import com.example.perfume_budget.dto.inventory.request.StockTransferRequest;
 import com.example.perfume_budget.dto.inventory.response.StockTransferResponse;
+import com.example.perfume_budget.enums.FrontDeskPermission;
 import com.example.perfume_budget.exception.BadRequestException;
 import com.example.perfume_budget.exception.ResourceNotFoundException;
 import com.example.perfume_budget.model.Product;
@@ -10,6 +11,7 @@ import com.example.perfume_budget.model.StorageLocation;
 import com.example.perfume_budget.repository.ProductRepository;
 import com.example.perfume_budget.repository.StockTransferRepository;
 import com.example.perfume_budget.repository.StorageLocationRepository;
+import com.example.perfume_budget.service.interfaces.FrontDeskAccessService;
 import com.example.perfume_budget.service.interfaces.LocationLedgerSync;
 import com.example.perfume_budget.service.interfaces.StockTransferService;
 import com.example.perfume_budget.utils.AuthUserUtil;
@@ -29,10 +31,12 @@ public class StockTransferServiceImpl implements StockTransferService {
     private final StockTransferRepository stockTransferRepository;
     private final LocationLedgerSync locationLedgerSync;
     private final AuthUserUtil authUserUtil;
+    private final FrontDeskAccessService frontDeskAccessService;
 
     @Override
     @Transactional
     public StockTransferResponse transfer(StockTransferRequest request) {
+        frontDeskAccessService.requireAccess(FrontDeskPermission.STOCK_TRANSFER);
         if (request.fromLocationId().equals(request.toLocationId())) {
             throw new BadRequestException("Source and destination locations must differ.");
         }
@@ -50,6 +54,7 @@ public class StockTransferServiceImpl implements StockTransferService {
     @Override
     @Transactional(readOnly = true)
     public Page<StockTransferResponse> history(Long productId, Long locationId, int page, int size) {
+        frontDeskAccessService.requireAccess(FrontDeskPermission.STOCK_TRANSFER);
         return stockTransferRepository.findHistory(productId, locationId, PageRequest.of(page, size))
                 .map(this::toResponse);
     }
