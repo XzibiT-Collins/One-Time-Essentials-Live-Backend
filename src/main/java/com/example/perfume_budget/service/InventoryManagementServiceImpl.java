@@ -264,7 +264,7 @@ public class InventoryManagementServiceImpl implements InventoryManagementServic
 
         quantityByProduct.forEach((productId, consumedQuantity) ->
                 locationLedgerSync.deductForEcommerceSale(productById.get(productId), consumedQuantity,
-                        "Fulfilled order " + order.getOrderNumber()));
+                        order.getOrderNumber(), "Fulfilled order " + order.getOrderNumber()));
 
         refreshProducts(order.getItems().stream().map(OrderItem::getProductId).distinct().toList());
     }
@@ -352,8 +352,8 @@ public class InventoryManagementServiceImpl implements InventoryManagementServic
         // Location ledger only moves on physical exits; reservations stay global-only (ADR-002).
         if (!createReservation) {
             switch (referenceType) {
-                case ADJUSTMENT, CONVERSION -> locationLedgerSync.deductAtDefaultReceiving(product, quantity, note);
-                default -> locationLedgerSync.deductForWalkInSale(product, quantity, note);
+                case ADJUSTMENT, CONVERSION -> locationLedgerSync.deductAtDefaultReceiving(product, quantity, referenceType, referenceId, note);
+                default -> locationLedgerSync.deductForWalkInSale(product, quantity, referenceId, note);
             }
         }
 
@@ -457,7 +457,7 @@ public class InventoryManagementServiceImpl implements InventoryManagementServic
 
         locationLedgerSync.increaseAtDefaultReceiving(product, quantity,
                 movementType == InventoryMovementType.RECEIPT ? StockTransferType.RECEIPT : StockTransferType.ADJUSTMENT,
-                note);
+                referenceType, referenceId, note);
         return refreshProductInventoryState(product);
     }
 

@@ -20,6 +20,11 @@ public interface LocationStockRepository extends JpaRepository<LocationStock, Lo
     @Query("select ls from LocationStock ls join fetch ls.location where ls.product.id = :productId order by ls.location.name asc")
     List<LocationStock> findByProductIdWithLocation(@Param("productId") Long productId);
 
+    // Batched per-location breakdown for a page of products (avoids N+1 in the items-sold report).
+    @Query("select ls from LocationStock ls join fetch ls.location l " +
+            "where ls.product.id in :productIds order by ls.product.id asc, l.name asc")
+    List<LocationStock> findByProductIdInWithLocation(@Param("productIds") List<Long> productIds);
+
     @Query("select coalesce(sum(ls.quantityOnHand), 0) from LocationStock ls " +
             "where ls.product.id = :productId and ls.location.type = :type and ls.location.active = true")
     int sumQuantityByProductAndLocationType(@Param("productId") Long productId,

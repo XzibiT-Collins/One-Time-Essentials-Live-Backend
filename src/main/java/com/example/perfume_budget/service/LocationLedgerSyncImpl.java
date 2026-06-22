@@ -1,5 +1,6 @@
 package com.example.perfume_budget.service;
 
+import com.example.perfume_budget.enums.InventoryReferenceType;
 import com.example.perfume_budget.enums.StockTransferType;
 import com.example.perfume_budget.enums.StorageLocationType;
 import com.example.perfume_budget.events.ShopFloorStockEvent;
@@ -34,7 +35,8 @@ public class LocationLedgerSyncImpl implements LocationLedgerSync {
 
     @Override
     @Transactional
-    public void applyDelta(Product product, StorageLocation location, int delta, StockTransferType type, String note, User movedBy) {
+    public void applyDelta(Product product, StorageLocation location, int delta, StockTransferType type,
+                           InventoryReferenceType referenceType, String referenceId, String note, User movedBy) {
         if (delta == 0) {
             return;
         }
@@ -51,6 +53,9 @@ public class LocationLedgerSyncImpl implements LocationLedgerSync {
                 .quantity(Math.abs(delta))
                 .movedBy(movedBy)
                 .transferType(type)
+                .balanceAfter(stock.getQuantityOnHand())
+                .referenceType(referenceType)
+                .referenceId(referenceId)
                 .note(note)
                 .build());
 
@@ -61,33 +66,36 @@ public class LocationLedgerSyncImpl implements LocationLedgerSync {
 
     @Override
     @Transactional
-    public void increaseAtDefaultReceiving(Product product, int quantity, StockTransferType type, String note) {
+    public void increaseAtDefaultReceiving(Product product, int quantity, StockTransferType type,
+                                           InventoryReferenceType referenceType, String referenceId, String note) {
         resolve(storageLocationRepository.findByIsDefaultReceivingTrue(), "default receiving")
-                .ifPresent(location -> applyDelta(product, location, quantity, type, note, authUserUtil.getCurrentUser()));
+                .ifPresent(location -> applyDelta(product, location, quantity, type, referenceType, referenceId, note,
+                        authUserUtil.getCurrentUser()));
     }
 
     @Override
     @Transactional
-    public void deductForWalkInSale(Product product, int quantity, String note) {
+    public void deductForWalkInSale(Product product, int quantity, String referenceId, String note) {
         resolve(storageLocationRepository.findByIsWalkInSaleSourceTrue(), "walk-in sale source")
-                .ifPresent(location -> applyDelta(product, location, -quantity, StockTransferType.SALE_DEDUCTION, note,
-                        authUserUtil.getCurrentUser()));
+                .ifPresent(location -> applyDelta(product, location, -quantity, StockTransferType.SALE_DEDUCTION,
+                        InventoryReferenceType.WALK_IN_ORDER, referenceId, note, authUserUtil.getCurrentUser()));
     }
 
     @Override
     @Transactional
-    public void deductForEcommerceSale(Product product, int quantity, String note) {
+    public void deductForEcommerceSale(Product product, int quantity, String referenceId, String note) {
         resolve(storageLocationRepository.findByIsEcommerceFulfilmentSourceTrue(), "e-commerce fulfilment source")
-                .ifPresent(location -> applyDelta(product, location, -quantity, StockTransferType.SALE_DEDUCTION, note,
-                        authUserUtil.getCurrentUser()));
+                .ifPresent(location -> applyDelta(product, location, -quantity, StockTransferType.SALE_DEDUCTION,
+                        InventoryReferenceType.ORDER, referenceId, note, authUserUtil.getCurrentUser()));
     }
 
     @Override
     @Transactional
-    public void deductAtDefaultReceiving(Product product, int quantity, String note) {
+    public void deductAtDefaultReceiving(Product product, int quantity, InventoryReferenceType referenceType,
+                                         String referenceId, String note) {
         resolve(storageLocationRepository.findByIsDefaultReceivingTrue(), "default receiving")
-                .ifPresent(location -> applyDelta(product, location, -quantity, StockTransferType.ADJUSTMENT, note,
-                        authUserUtil.getCurrentUser()));
+                .ifPresent(location -> applyDelta(product, location, -quantity, StockTransferType.ADJUSTMENT,
+                        referenceType, referenceId, note, authUserUtil.getCurrentUser()));
     }
 
     @Override
@@ -122,6 +130,7 @@ public class LocationLedgerSyncImpl implements LocationLedgerSync {
                 .quantity(quantity)
                 .movedBy(movedBy)
                 .transferType(StockTransferType.TRANSFER)
+                .balanceAfter(fromStock.getQuantityOnHand())
                 .note(note)
                 .build());
 

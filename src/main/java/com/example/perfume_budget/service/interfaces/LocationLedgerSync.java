@@ -1,5 +1,6 @@
 package com.example.perfume_budget.service.interfaces;
 
+import com.example.perfume_budget.enums.InventoryReferenceType;
 import com.example.perfume_budget.enums.StockTransferType;
 import com.example.perfume_budget.model.Product;
 import com.example.perfume_budget.model.StockTransfer;
@@ -14,15 +15,18 @@ import com.example.perfume_budget.model.User;
  */
 public interface LocationLedgerSync {
 
-    void applyDelta(Product product, StorageLocation location, int delta, StockTransferType type, String note, User movedBy);
+    void applyDelta(Product product, StorageLocation location, int delta, StockTransferType type,
+                    InventoryReferenceType referenceType, String referenceId, String note, User movedBy);
 
-    void increaseAtDefaultReceiving(Product product, int quantity, StockTransferType type, String note);
+    void increaseAtDefaultReceiving(Product product, int quantity, StockTransferType type,
+                                    InventoryReferenceType referenceType, String referenceId, String note);
 
-    void deductForWalkInSale(Product product, int quantity, String note);
+    void deductForWalkInSale(Product product, int quantity, String referenceId, String note);
 
-    void deductForEcommerceSale(Product product, int quantity, String note);
+    void deductForEcommerceSale(Product product, int quantity, String referenceId, String note);
 
-    void deductAtDefaultReceiving(Product product, int quantity, String note);
+    void deductAtDefaultReceiving(Product product, int quantity, InventoryReferenceType referenceType,
+                                  String referenceId, String note);
 
     StockTransfer transfer(Product product, StorageLocation from, StorageLocation to, int quantity, String note, User movedBy);
 }

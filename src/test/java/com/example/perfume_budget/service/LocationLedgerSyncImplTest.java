@@ -1,5 +1,6 @@
 package com.example.perfume_budget.service;
 
+import com.example.perfume_budget.enums.InventoryReferenceType;
 import com.example.perfume_budget.enums.StockTransferType;
 import com.example.perfume_budget.enums.StorageLocationType;
 import com.example.perfume_budget.events.ShopFloorStockEvent;
@@ -79,7 +80,7 @@ class LocationLedgerSyncImplTest {
         LocationStock floorStock = balance(shopFloor, 3);
         when(locationStockRepository.findForUpdate(7L, 1L)).thenReturn(Optional.of(floorStock));
 
-        locationLedgerSync.applyDelta(product, shopFloor, 5, StockTransferType.RECEIPT, "received", staff);
+        locationLedgerSync.applyDelta(product, shopFloor, 5, StockTransferType.RECEIPT, null, null, "received", staff);
 
         assertEquals(8, floorStock.getQuantityOnHand());
         verify(locationStockRepository).save(floorStock);
@@ -93,6 +94,7 @@ class LocationLedgerSyncImplTest {
         assertEquals(StockTransferType.RECEIPT, logged.getTransferType());
         assertEquals(staff, logged.getMovedBy());
         assertEquals("received", logged.getNote());
+        assertEquals(8, logged.getBalanceAfter());
 
         verifyNoInteractions(eventPublisher);
     }
@@ -102,7 +104,7 @@ class LocationLedgerSyncImplTest {
         LocationStock floorStock = balance(shopFloor, 1);
         when(locationStockRepository.findForUpdate(7L, 1L)).thenReturn(Optional.of(floorStock));
 
-        locationLedgerSync.applyDelta(product, shopFloor, -3, StockTransferType.SALE_DEDUCTION, "walk-in", staff);
+        locationLedgerSync.applyDelta(product, shopFloor, -3, StockTransferType.SALE_DEDUCTION, null, null, "walk-in", staff);
 
         assertEquals(-2, floorStock.getQuantityOnHand());
 
@@ -122,7 +124,7 @@ class LocationLedgerSyncImplTest {
     void applyDelta_StoreRoomDecrement_NoEvent() {
         when(locationStockRepository.findForUpdate(7L, 2L)).thenReturn(Optional.of(balance(storeRoom, 10)));
 
-        locationLedgerSync.applyDelta(product, storeRoom, -4, StockTransferType.ADJUSTMENT, "shrinkage", staff);
+        locationLedgerSync.applyDelta(product, storeRoom, -4, StockTransferType.ADJUSTMENT, null, null, "shrinkage", staff);
 
         verifyNoInteractions(eventPublisher);
     }
@@ -133,7 +135,7 @@ class LocationLedgerSyncImplTest {
         when(locationStockRepository.save(any(LocationStock.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        locationLedgerSync.applyDelta(product, shopFloor, 5, StockTransferType.RECEIPT, "first stock", staff);
+        locationLedgerSync.applyDelta(product, shopFloor, 5, StockTransferType.RECEIPT, null, null, "first stock", staff);
 
         ArgumentCaptor<LocationStock> captor = ArgumentCaptor.forClass(LocationStock.class);
         verify(locationStockRepository, times(2)).save(captor.capture());
@@ -145,7 +147,7 @@ class LocationLedgerSyncImplTest {
 
     @Test
     void applyDelta_ZeroDelta_DoesNothing() {
-        locationLedgerSync.applyDelta(product, shopFloor, 0, StockTransferType.RECEIPT, "noop", staff);
+        locationLedgerSync.applyDelta(product, shopFloor, 0, StockTransferType.RECEIPT, null, null, "noop", staff);
 
         verifyNoInteractions(locationStockRepository, stockTransferRepository, eventPublisher);
     }
@@ -154,7 +156,7 @@ class LocationLedgerSyncImplTest {
     void increaseAtDefaultReceiving_SkipsSilently_WhenNoLocationConfigured() {
         when(storageLocationRepository.findByIsDefaultReceivingTrue()).thenReturn(Optional.empty());
 
-        locationLedgerSync.increaseAtDefaultReceiving(product, 5, StockTransferType.RECEIPT, "received");
+        locationLedgerSync.increaseAtDefaultReceiving(product, 5, StockTransferType.RECEIPT, null, null, "received");
 
         verifyNoInteractions(locationStockRepository, stockTransferRepository, eventPublisher);
     }
@@ -166,13 +168,16 @@ class LocationLedgerSyncImplTest {
         LocationStock floorStock = balance(shopFloor, 10);
         when(locationStockRepository.findForUpdate(7L, 1L)).thenReturn(Optional.of(floorStock));
 
-        locationLedgerSync.deductForWalkInSale(product, 2, "walk-in WIN-1");
+        locationLedgerSync.deductForWalkInSale(product, 2, "WIN-1", "walk-in WIN-1");
 
         assertEquals(8, floorStock.getQuantityOnHand());
         ArgumentCaptor<StockTransfer> captor = ArgumentCaptor.forClass(StockTransfer.class);
         verify(stockTransferRepository).save(captor.capture());
         assertEquals(StockTransferType.SALE_DEDUCTION, captor.getValue().getTransferType());
         assertEquals(staff, captor.getValue().getMovedBy());
+        assertEquals(8, captor.getValue().getBalanceAfter());
+        assertEquals(InventoryReferenceType.WALK_IN_ORDER, captor.getValue().getReferenceType());
+        assertEquals("WIN-1", captor.getValue().getReferenceId());
     }
 
     @Test
@@ -182,13 +187,15 @@ class LocationLedgerSyncImplTest {
         LocationStock roomStock = balance(storeRoom, 6);
         when(locationStockRepository.findForUpdate(7L, 2L)).thenReturn(Optional.of(roomStock));
 
-        locationLedgerSync.deductForEcommerceSale(product, 6, "order ORD-9");
+        locationLedgerSync.deductForEcommerceSale(product, 6, "ORD-9", "order ORD-9");
 
         assertEquals(0, roomStock.getQuantityOnHand());
         ArgumentCaptor<StockTransfer> captor = ArgumentCaptor.forClass(StockTransfer.class);
         verify(stockTransferRepository).save(captor.capture());
         assertEquals(StockTransferType.SALE_DEDUCTION, captor.getValue().getTransferType());
         assertNull(captor.getValue().getMovedBy());
+        assertEquals(InventoryReferenceType.ORDER, captor.getValue().getReferenceType());
+        assertEquals("ORD-9", captor.getValue().getReferenceId());
     }
 
     @Test
@@ -197,7 +204,7 @@ class LocationLedgerSyncImplTest {
         when(authUserUtil.getCurrentUser()).thenReturn(staff);
         when(locationStockRepository.findForUpdate(7L, 1L)).thenReturn(Optional.of(balance(shopFloor, 5)));
 
-        locationLedgerSync.deductAtDefaultReceiving(product, 2, "damaged");
+        locationLedgerSync.deductAtDefaultReceiving(product, 2, InventoryReferenceType.ADJUSTMENT, "ADJ-1", "damaged");
 
         ArgumentCaptor<StockTransfer> captor = ArgumentCaptor.forClass(StockTransfer.class);
         verify(stockTransferRepository).save(captor.capture());
