@@ -3,6 +3,7 @@ package com.example.perfume_budget.service;
 import com.example.perfume_budget.dto.product.response.ProductVariantSummaryResponse;
 import com.example.perfume_budget.dto.product.response.StockConversionResponse;
 import com.example.perfume_budget.enums.ConversionDirection;
+import com.example.perfume_budget.enums.FrontDeskPermission;
 import com.example.perfume_budget.exception.BadRequestException;
 import com.example.perfume_budget.exception.ResourceNotFoundException;
 import com.example.perfume_budget.mapper.ProductMapper;
@@ -12,6 +13,7 @@ import com.example.perfume_budget.model.StockConversion;
 import com.example.perfume_budget.model.User;
 import com.example.perfume_budget.repository.ProductRepository;
 import com.example.perfume_budget.repository.StockConversionRepository;
+import com.example.perfume_budget.service.interfaces.FrontDeskAccessService;
 import com.example.perfume_budget.service.interfaces.InventoryManagementService;
 import com.example.perfume_budget.service.interfaces.StockConversionService;
 import com.example.perfume_budget.utils.AuthUserUtil;
@@ -35,9 +37,11 @@ public class StockConversionServiceImpl implements StockConversionService {
     private final BookkeepingService bookkeepingService;
     private final AuthUserUtil authUserUtil;
     private final InventoryManagementService inventoryManagementService;
+    private final FrontDeskAccessService frontDeskAccessService;
 
     @Override
     public List<ProductVariantSummaryResponse> getReverseConversionTargetVariants(Long sourceProductId) {
+        frontDeskAccessService.requireAccess(FrontDeskPermission.STOCK_CONVERSION);
         Product sourceProduct = productRepository.findById(sourceProductId)
                 .orElseThrow(() -> new ResourceNotFoundException("Source product not found"));
 
@@ -58,6 +62,7 @@ public class StockConversionServiceImpl implements StockConversionService {
     @Override
     @Transactional
     public StockConversionResponse convertForward(Long sourceProductId, Integer sourceQuantity, String notes) {
+        frontDeskAccessService.requireAccess(FrontDeskPermission.STOCK_CONVERSION);
         Product sourceProduct = productRepository.findById(sourceProductId)
                 .orElseThrow(() -> new ResourceNotFoundException("Source product not found"));
 
@@ -131,6 +136,7 @@ public class StockConversionServiceImpl implements StockConversionService {
     @Override
     @Transactional
     public StockConversionResponse convertReverse(Long sourceProductId, Integer sourceQuantity, Long targetProductId, String notes) {
+        frontDeskAccessService.requireAccess(FrontDeskPermission.STOCK_CONVERSION);
         if (targetProductId == null) {
             throw new BadRequestException("Target product ID is required for reverse conversion.");
         }

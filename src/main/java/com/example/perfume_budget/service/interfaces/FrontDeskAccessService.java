@@ -9,4 +9,6 @@ public interface FrontDeskAccessService {
     Set<FrontDeskPermission> getEffectivePermissions(User user);
 
     boolean hasPermission(User user, FrontDeskPermission permission);
+
+    User requireAccess(FrontDeskPermission permission);
 }
