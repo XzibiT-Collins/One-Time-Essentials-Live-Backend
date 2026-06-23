@@ -12,6 +12,7 @@ import com.example.perfume_budget.model.StockConversion;
 import com.example.perfume_budget.model.User;
 import com.example.perfume_budget.repository.ProductRepository;
 import com.example.perfume_budget.repository.StockConversionRepository;
+import com.example.perfume_budget.service.interfaces.FrontDeskAccessService;
 import com.example.perfume_budget.service.interfaces.InventoryManagementService;
 import com.example.perfume_budget.utils.AuthUserUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +47,8 @@ class StockConversionServiceImplTest {
     private AuthUserUtil authUserUtil;
     @Mock
     private InventoryManagementService inventoryManagementService;
+    @Mock
+    private FrontDeskAccessService frontDeskAccessService;
 
     @InjectMocks
     private StockConversionServiceImpl stockConversionService;

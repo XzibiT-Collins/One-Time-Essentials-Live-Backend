@@ -11,4 +11,5 @@ public interface SoldProductAggregate {
     Long getQuantitySold();
     BigDecimal getTotalAmount();
     Integer getRemainingStock();
+    Integer getLowStockThreshold();
 }

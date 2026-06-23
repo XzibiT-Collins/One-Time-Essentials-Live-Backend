@@ -13,6 +13,7 @@ import com.example.perfume_budget.model.User;
 import com.example.perfume_budget.repository.ProductRepository;
 import com.example.perfume_budget.repository.StockTransferRepository;
 import com.example.perfume_budget.repository.StorageLocationRepository;
+import com.example.perfume_budget.service.interfaces.FrontDeskAccessService;
 import com.example.perfume_budget.service.interfaces.LocationLedgerSync;
 import com.example.perfume_budget.utils.AuthUserUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,8 @@ class StockTransferServiceImplTest {
     private LocationLedgerSync locationLedgerSync;
     @Mock
     private AuthUserUtil authUserUtil;
+    @Mock
+    private FrontDeskAccessService frontDeskAccessService;
 
     @InjectMocks
     private StockTransferServiceImpl stockTransferService;

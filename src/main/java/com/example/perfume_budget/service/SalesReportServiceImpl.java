@@ -67,6 +67,7 @@ public class SalesReportServiceImpl implements SalesReportService {
                 a.getQuantitySold() != null ? a.getQuantitySold() : 0L,
                 a.getTotalAmount(),
                 a.getRemainingStock(),
+                a.getLowStockThreshold(),
                 byLocation.getOrDefault(a.getProductId(), List.of())));
 
         SalesTotals totals = inventoryMovementRepository.sumSales(refTypes, window.start(), window.end());

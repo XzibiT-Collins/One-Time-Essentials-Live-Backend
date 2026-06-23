@@ -25,7 +25,8 @@ public interface InventoryMovementRepository extends JpaRepository<InventoryMove
                    p.imageUrl as imageUrl,
                    sum(m.quantity) as quantitySold,
                    sum(m.quantity * m.unitSellingPrice) as totalAmount,
-                   p.stockQuantity as remainingStock
+                   p.stockQuantity as remainingStock,
+                   p.lowStockThreshold as lowStockThreshold
             from InventoryMovement m join m.product p
             where m.movementType = com.example.perfume_budget.enums.InventoryMovementType.SALE
               and m.referenceType in :refTypes
