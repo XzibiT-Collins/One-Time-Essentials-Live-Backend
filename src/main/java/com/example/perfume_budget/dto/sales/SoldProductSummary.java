@@ -12,6 +12,7 @@ public record SoldProductSummary(
         long quantitySold,
         BigDecimal totalAmount,
         Integer remainingStockGlobal,
+        Integer lowStockThreshold,
         List<LocationStockEntry> remainingByLocation
 ) {
 }
