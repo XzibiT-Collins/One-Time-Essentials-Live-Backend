@@ -145,7 +145,7 @@ class ProductServiceImplTest {
 
     @Test
     void createProduct_NewFamily_SetsBaseUnitSkuAndPersistsInventory() {
-        ProductRequest request = buildRequest(true, null, null, null, new BigDecimal("80.00"), 10, false);
+        ProductRequest request = buildRequest(true, null, null, null, new BigDecimal("80.00"), false);
 
         when(cloudinaryFileUploadUtil.uploadProductImage(productImage)).thenReturn("http://image.com/new.jpg");
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
@@ -162,8 +162,6 @@ class ProductServiceImplTest {
             savedProduct.setId(1L);
             return savedProduct;
         });
-        when(inventoryManagementService.recordOpeningStock(any(Product.class), eq(10), any(), any(), anyString(), anyString()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
 
         ProductDetails result = productService.createProduct(request);
 
@@ -175,12 +173,14 @@ class ProductServiceImplTest {
         assertEquals("VES", savedProduct.getFamily().getFamilyCode().substring(0, 3));
         assertTrue(savedProduct.getSku().endsWith("-EA"));
         assertFalse(Boolean.TRUE.equals(savedProduct.getIsEnlisted()));
-        verify(inventoryManagementService).recordOpeningStock(any(Product.class), eq(10), eq(new BigDecimal("80.00")), eq(new BigDecimal("100.00")), anyString(), anyString());
+        // Stock is no longer seeded at creation; it enters via the receive endpoint.
+        assertEquals(0, savedProduct.getStockQuantity());
+        verifyNoInteractions(inventoryManagementService);
     }
 
     @Test
     void createProduct_ExistingFamilyVariant_CalculatesSkuAndCostFromBaseUnit() {
-        ProductRequest request = buildRequest(false, 5L, "BOX", 12, new BigDecimal("80.00"), 4, false);
+        ProductRequest request = buildRequest(false, 5L, "BOX", 12, new BigDecimal("80.00"), false);
 
         when(cloudinaryFileUploadUtil.uploadProductImage(productImage)).thenReturn("http://image.com/box.jpg");
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
@@ -192,19 +192,19 @@ class ProductServiceImplTest {
             savedProduct.setId(2L);
             return savedProduct;
         });
-        when(inventoryManagementService.recordOpeningStock(any(Product.class), eq(4), any(), any(), anyString(), anyString()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
 
         ProductDetails result = productService.createProduct(request);
 
         assertEquals("FAM-001-BOX", result.stockKeepingUnit());
         assertEquals("USD 960.00", result.costPrice());
-        verify(inventoryManagementService).recordOpeningStock(any(Product.class), eq(4), eq(new BigDecimal("960.00")), eq(new BigDecimal("100.00")), anyString(), anyString());
+        // Stock is no longer seeded at creation; it enters via the receive endpoint.
+        assertEquals(0, result.stockQuantity());
+        verifyNoInteractions(inventoryManagementService);
     }
 
     @Test
     void createProduct_CategoryNotFound_Throws() {
-        ProductRequest request = buildRequest(true, null, null, null, new BigDecimal("80.00"), 10, false);
+        ProductRequest request = buildRequest(true, null, null, null, new BigDecimal("80.00"), false);
         when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> productService.createProduct(request));
@@ -328,7 +328,7 @@ class ProductServiceImplTest {
 
     @Test
     void updateProduct_ChangingUomRegeneratesSku() {
-        ProductRequest updateRequest = buildRequest(false, 5L, "BOX", 12, new BigDecimal("80.00"), 10, true);
+        ProductRequest updateRequest = buildRequest(false, 5L, "BOX", 12, new BigDecimal("80.00"), true);
         when(productRepository.findById(1L)).thenReturn(Optional.of(baseProduct));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(unitOfMeasureRepository.findByCode("BOX")).thenReturn(Optional.of(boxUom));
@@ -351,7 +351,6 @@ class ProductServiceImplTest {
                 CurrencyCode.USD,
                 new BigDecimal("100.00"),
                 new BigDecimal("80.00"),
-                10,
                 2,
                 1L,
                 null,
@@ -378,8 +377,6 @@ class ProductServiceImplTest {
             savedProduct.setId(1L);
             return savedProduct;
         });
-        when(inventoryManagementService.recordOpeningStock(any(Product.class), eq(10), any(), any(), anyString(), anyString()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
 
         ProductDetails result = productService.createProduct(request);
 
@@ -398,7 +395,6 @@ class ProductServiceImplTest {
                 CurrencyCode.USD,
                 new BigDecimal("100.00"),
                 new BigDecimal("80.00"),
-                10,
                 2,
                 1L,
                 null,
@@ -424,7 +420,7 @@ class ProductServiceImplTest {
 
     @Test
     void updateProduct_UpdatesEnlistedFlag() {
-        ProductRequest updateRequest = buildRequest(false, 5L, "EA", 1, new BigDecimal("80.00"), 10, false);
+        ProductRequest updateRequest = buildRequest(false, 5L, "EA", 1, new BigDecimal("80.00"), false);
         when(productRepository.findById(1L)).thenReturn(Optional.of(baseProduct));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -491,7 +487,6 @@ class ProductServiceImplTest {
             String uomCode,
             Integer conversionFactor,
             BigDecimal costPrice,
-            Integer stockQuantity,
             Boolean isEnlisted
     ) {
         return new ProductRequest(
@@ -503,7 +498,6 @@ class ProductServiceImplTest {
                 CurrencyCode.USD,
                 new BigDecimal("100.00"),
                 costPrice,
-                stockQuantity,
                 2,
                 1L,
                 familyId,

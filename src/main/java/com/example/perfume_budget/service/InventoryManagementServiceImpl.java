@@ -54,18 +54,26 @@ public class InventoryManagementServiceImpl implements InventoryManagementServic
         Product product = getProduct(request.productId());
         validatePositiveAmounts(request.unitCost(), request.unitSellingPrice());
 
+        // First-ever receipt for a product that holds no stock is its opening stock.
+        boolean firstReceipt = !inventoryLayerRepository.existsByProductId(product.getId())
+                && (product.getStockQuantity() == null || product.getStockQuantity() == 0);
+        InventoryLayerSourceType sourceType = firstReceipt
+                ? InventoryLayerSourceType.OPENING_STOCK
+                : InventoryLayerSourceType.PURCHASE;
+        String lineKey = (firstReceipt ? "opening:" : "receipt:") + product.getId();
+
         Product updated = createLayer(product,
                 request.quantity(),
                 request.unitCost(),
                 request.unitSellingPrice(),
-                InventoryLayerSourceType.PURCHASE,
+                sourceType,
                 request.reference(),
                 request.note(),
                 request.receivedAt() != null ? request.receivedAt() : LocalDateTime.now(),
                 InventoryMovementType.RECEIPT,
                 InventoryReferenceType.RECEIPT,
                 request.reference(),
-                "receipt:" + product.getId());
+                lineKey);
 
         bookkeepingService.recordInventoryPurchase(
                 updated,
@@ -132,41 +140,6 @@ public class InventoryManagementServiceImpl implements InventoryManagementServic
                 locations,
                 balancesMatchGlobal
         );
-    }
-
-    @Override
-    @Transactional
-//    @CacheEvict(cacheNames = {"customerProductListings", "featuredProducts", "productDetailsPage"}, allEntries = true)
-    public Product recordOpeningStock(Product product,
-                                      Integer quantity,
-                                      BigDecimal unitCost,
-                                      BigDecimal unitSellingPrice,
-                                      String reference,
-                                      String note) {
-        if (quantity == null || quantity <= 0) {
-            product.setStockQuantity(0);
-            return productRepository.save(product);
-        }
-
-        Product updated = createLayer(product,
-                quantity,
-                unitCost,
-                unitSellingPrice,
-                InventoryLayerSourceType.OPENING_STOCK,
-                reference,
-                note,
-                LocalDateTime.now(),
-                InventoryMovementType.RECEIPT,
-                InventoryReferenceType.RECEIPT,
-                reference,
-                "opening:" + product.getId());
-
-        bookkeepingService.recordInventoryPurchase(
-                updated,
-                quantity,
-                scale(unitCost.multiply(BigDecimal.valueOf(quantity)))
-        );
-        return updated;
     }
 
     @Override

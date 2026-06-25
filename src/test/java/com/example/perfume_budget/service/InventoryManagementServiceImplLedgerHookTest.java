@@ -30,6 +30,7 @@ import com.example.perfume_budget.utils.AuthUserUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -117,6 +118,31 @@ class InventoryManagementServiceImplLedgerHookTest {
 
         verify(locationLedgerSync).increaseAtDefaultReceiving(product, 5, StockTransferType.RECEIPT,
                 InventoryReferenceType.RECEIPT, "PO-1", "shipment");
+    }
+
+    @Test
+    void receiveStock_FirstReceipt_RecordedAsOpeningStock() {
+        // No existing layers and zero stock → this receipt is the product's opening stock.
+        product.setStockQuantity(0);
+        when(inventoryLayerRepository.existsByProductId(1L)).thenReturn(false);
+
+        inventoryManagementService.receiveStock(new InventoryReceiptRequest(
+                1L, 5, new BigDecimal("10.00"), new BigDecimal("20.00"), null, "PO-1", "first shipment"));
+
+        ArgumentCaptor<InventoryLayer> layerCaptor = ArgumentCaptor.forClass(InventoryLayer.class);
+        verify(inventoryLayerRepository).save(layerCaptor.capture());
+        assertEquals(InventoryLayerSourceType.OPENING_STOCK, layerCaptor.getValue().getSourceType());
+    }
+
+    @Test
+    void receiveStock_SubsequentReceipt_RecordedAsPurchase() {
+        // setUp() already has an existing layer and stock on hand → ordinary purchase.
+        inventoryManagementService.receiveStock(new InventoryReceiptRequest(
+                1L, 5, new BigDecimal("10.00"), new BigDecimal("20.00"), null, "PO-2", "restock"));
+
+        ArgumentCaptor<InventoryLayer> layerCaptor = ArgumentCaptor.forClass(InventoryLayer.class);
+        verify(inventoryLayerRepository).save(layerCaptor.capture());
+        assertEquals(InventoryLayerSourceType.PURCHASE, layerCaptor.getValue().getSourceType());
     }
 
     @Test

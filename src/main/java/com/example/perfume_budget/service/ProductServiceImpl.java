@@ -17,7 +17,6 @@ import com.example.perfume_budget.repository.CategoryRepository;
 import com.example.perfume_budget.repository.ProductFamilyRepository;
 import com.example.perfume_budget.repository.ProductRepository;
 import com.example.perfume_budget.repository.UnitOfMeasureRepository;
-import com.example.perfume_budget.service.interfaces.InventoryManagementService;
 import com.example.perfume_budget.service.interfaces.ProductService;
 import com.example.perfume_budget.exception.BadRequestException;
 import com.example.perfume_budget.specification.ProductSpecification;
@@ -60,7 +59,6 @@ public class ProductServiceImpl implements ProductService {
     private final AuthUserUtil authUserUtil;
     private final CloudinaryFileUploadUtil cloudinaryFileUploadUtil;
     private final BookkeepingService bookkeepingService;
-    private final InventoryManagementService inventoryManagementService;
     private final ProductCatalogCacheService productCatalogCacheService;
     private final EffectivePriceService effectivePriceService;
 
@@ -122,14 +120,6 @@ public class ProductServiceImpl implements ProductService {
             family.setBaseUnit(savedProduct);
             productFamilyRepository.save(family);
 
-            savedProduct = inventoryManagementService.recordOpeningStock(
-                    savedProduct,
-                    request.stockQuantity(),
-                    request.costPrice(),
-                    request.sellingPrice(),
-                    "OPENING-" + savedProduct.getId(),
-                    "Opening stock for " + savedProduct.getName()
-            );
             return toDetails(savedProduct);
 
         } else {
@@ -168,14 +158,6 @@ public class ProductServiceImpl implements ProductService {
             newProduct.setCostPrice(new Money(calculatedCost, baseUnit.getCostPrice().getCurrencyCode()));
 
             Product savedProduct = productRepository.save(newProduct);
-            savedProduct = inventoryManagementService.recordOpeningStock(
-                    savedProduct,
-                    request.stockQuantity(),
-                    calculatedCost,
-                    request.sellingPrice(),
-                    "OPENING-" + savedProduct.getId(),
-                    "Opening stock for " + savedProduct.getName()
-            );
             return toDetails(savedProduct);
         }
     }
@@ -399,10 +381,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void validateInventoryManagedFields(Product product, ProductRequest request) {
-        if (!Objects.equals(product.getStockQuantity(), request.stockQuantity())) {
-            throw new BadRequestException("Stock quantity must be updated through inventory management.");
-        }
-
         Money incomingCostPrice = new Money(request.costPrice(), request.currency());
         if (isMoneyDifferent(product.getCostPrice(), incomingCostPrice)) {
             throw new BadRequestException("Cost price must be updated through inventory management.");

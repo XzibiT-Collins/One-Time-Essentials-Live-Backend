@@ -23,13 +23,6 @@ public interface InventoryManagementService {
     List<InventoryMovementResponse> getProductInventoryHistory(Long productId);
     ProductStockByLocationResponse getProductStockByLocation(Long productId);
 
-    Product recordOpeningStock(Product product,
-                               Integer quantity,
-                               BigDecimal unitCost,
-                               BigDecimal unitSellingPrice,
-                               String reference,
-                               String note);
-
     void reserveOrderInventory(String orderNumber, List<OrderItem> orderItems);
     void releaseOrderInventory(String orderNumber);
     void finalizeReservedOrder(Order order);

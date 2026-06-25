@@ -17,7 +17,6 @@ public record ProductRequest(
         @NotNull CurrencyCode currency,
         @NotNull BigDecimal sellingPrice,
         @NotNull BigDecimal costPrice,
-        @NotNull Integer stockQuantity,
         Integer lowStockThreshold,
         @Nullable Long categoryId,
         @Nullable Long familyId,

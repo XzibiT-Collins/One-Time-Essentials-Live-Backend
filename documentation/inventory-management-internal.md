@@ -179,16 +179,15 @@ When Layer 1 reaches zero:
 
 ### Product Creation
 
-`ProductServiceImpl.createProduct(...)` still accepts opening stock-like fields, but the stock is no longer persisted as a direct product mutation.
+`ProductServiceImpl.createProduct(...)` defines the product *type* only; it does not accept or record stock. Stock enters exclusively through the receive endpoint.
 
 Current behavior:
 
-- product is first created with `stockQuantity = 0`
-- base products still get their initial cost set so a product record can exist
-- if opening quantity is greater than zero, `inventoryManagementService.recordOpeningStock(...)` creates the opening layer
-- bookkeeping records the opening inventory value using the explicit opening receipt value
+- product is created with `stockQuantity = 0`
+- base products still get their initial cost/selling price set so a product record can exist (these are overwritten from the active layer once stock is received)
+- no inventory layer or movement is created at product creation
 
-This keeps backward compatibility with existing product creation payloads while moving inventory truth into layers.
+Opening stock is recorded on the **first stock receipt** for a product. In `InventoryManagementServiceImpl.receiveStock(...)`, when a product has no inventory layers and zero stock, the receipt's layer is tagged `OPENING_STOCK` (otherwise `PURCHASE`). Bookkeeping records the inventory value from that receipt as usual.
 
 ### Product Update
 
